@@ -8,8 +8,8 @@ __pycache__/
 *.pyo
 .DS_Store
 
-.claude
 EKTC
+TRACE
 
 *.txt
 
@@ -17,3 +17,4 @@ retriever_cache
 outputs
 
 .idea
+.claude

@@ -1,9 +1,0 @@
-.env
-outputs/
-empatheticdialogues/
-ed.tar.gz
-retriever_cache/
-__pycache__/
-*.pyc
-*.pyo
-.DS_Store

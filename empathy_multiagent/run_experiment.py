@@ -22,6 +22,7 @@ from architectures.empathy_debate import empathy_debate
 from architectures.empathy_loop import empathy_loop
 from architectures.empathy_rag import EmpathyRetriever, empathy_rag
 from architectures.empathy_mas_c import empathy_mas_c
+from architectures.empathy_trace import empathy_trace
 from src.metrics import compute_all_metrics, compute_rag_metrics
 import numpy as np
 
@@ -88,6 +89,10 @@ async def empathy_mas_c_wrapper(dialogue_context: str, llm) -> dict:
     return await empathy_mas_c(dialogue_context, llm, get_retriever())
 
 
+async def empathy_trace_wrapper(dialogue_context: str, llm) -> dict:
+    return await empathy_trace(dialogue_context, llm, get_retriever())
+
+
 ARCHITECTURES = {
     "empathy_zero_shot": empathy_zero_shot,
     "empathy_few_shot": empathy_few_shot,
@@ -97,6 +102,7 @@ ARCHITECTURES = {
     "empathy_loop": empathy_loop,
     "empathy_rag": empathy_rag_wrapper,
     "empathy_mas_c": empathy_mas_c_wrapper,
+    "empathy_trace": empathy_trace_wrapper,
 }
 
 
