@@ -24,7 +24,7 @@ PRINT_KEYS = [
     "BERTScore-P", "BERTScore-R", "BERTScore-F",
     "Dist-1", "Dist-2",
     "AvgLen", "Accuracy (%)",
-    "Avg calls/example", "Errors",
+    "Avg calls/example", "Errors", "Successful",
 ]
 
 
@@ -35,15 +35,17 @@ def recompute(path: Path, skip_bertscore: bool) -> None:
     results = data.get("results", [])
     arch = data.get("architecture", "")
 
-    hypotheses = [r["generated_response"] for r in results if r.get("generated_response")]
-    references = [r["gold_response"] for r in results if r.get("generated_response")]
+    ok_results = [r for r in results if not r.get("error")]
+
+    hypotheses = [r["generated_response"] for r in ok_results if r.get("generated_response")]
+    references = [r["gold_response"] for r in ok_results if r.get("generated_response")]
 
     if not hypotheses:
         print(f"[SKIP] {path.name} — нет сгенерированных ответов")
         return
 
     predicted_emotions, gold_emotions = [], []
-    for r in results:
+    for r in ok_results:
         em = r.get("intermediate", {}).get("emotion", {})
         if isinstance(em, dict) and "emotion" in em:
             predicted_emotions.append(em["emotion"])
@@ -62,13 +64,14 @@ def recompute(path: Path, skip_bertscore: bool) -> None:
         references,
         predicted_emotions or None,
         gold_emotions or None,
-        results,
+        ok_results,
         skip_bertscore=skip_bertscore,
     )
 
-    latencies = [r["latency_ms"] for r in results if r.get("latency_ms")]
+    latencies = [r["latency_ms"] for r in ok_results if r.get("latency_ms")]
     metrics["Avg latency ms"] = round(sum(latencies) / len(latencies)) if latencies else 0
     metrics["Errors"] = sum(1 for r in results if "error" in r)
+    metrics["Successful"] = len(ok_results)
 
     if arch == "empathy_rag":
         metrics.update(compute_rag_metrics(results))

@@ -17,7 +17,7 @@ TABLE_COLS = [
     "BERTScore-P", "BERTScore-R", "BERTScore-F",
     "Dist-1", "Dist-2",
     "AvgLen", "Accuracy (%)",
-    "Avg calls/example", "Errors",
+    "Avg calls/example", "Errors", "Successful",
 ]
 
 PLOT_METRICS = [

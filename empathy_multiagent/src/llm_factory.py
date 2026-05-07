@@ -44,6 +44,7 @@ class LLMFactory:
             "mistral": "https://console.mistral.ai",
             "github-models": "https://github.com/settings/tokens",
             "openrouter": "https://openrouter.ai/settings/keys",
+            "local-vllm": "запусти сервер: python serve_local.py --model <key>",
         }
         return urls.get(self.cfg["provider"], "check provider docs")
 
@@ -96,8 +97,15 @@ class LLMFactory:
                     max_tokens=effective_max_tokens,
                 )
                 if disable_thinking:
-                    # reasoning_format=hidden скрывает <think>-блок на стороне Groq
-                    create_kwargs["extra_body"] = {"reasoning_format": "hidden"}
+                    provider = self.cfg.get("provider", "")
+                    if provider == "groq":
+                        # Groq-специфичный параметр: скрывает <think>-блок на стороне сервера
+                        create_kwargs["extra_body"] = {"reasoning_format": "hidden"}
+                    elif provider == "local-vllm":
+                        # vLLM + Qwen3: отключаем thinking через chat_template_kwargs
+                        create_kwargs["extra_body"] = {
+                            "chat_template_kwargs": {"enable_thinking": False}
+                        }
                 response = await self.client.chat.completions.create(**create_kwargs)
                 text = response.choices[0].message.content.strip()
                 # Убираем блоки <think>...</think> (Qwen-3, DeepSeek-R1 и др.)

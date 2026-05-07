@@ -148,26 +148,33 @@ ERS_SYSTEM = (
 def _retrieve_for_trace(retriever: EmpathyRetriever, dialogue_context: str,
                         ekman_emotion: str, top_k: int = 2) -> list:
     """
-    Precise search: пробует все fine-grained эмоции из группы Экмана.
-    Fuzzy fallback: если precise не нашёл — ищет по всем эмоциям.
+    Эмулирует оригинальный TRACE: ChromaDB фильтрует сразу весь Ekman-кластер
+    ({"emotion_id": ekman_emotion}), затем ранжирует по сходству.
+
+    Здесь индексы разбиты по fine-grained ED-эмоциям, поэтому:
+    - собираем кандидатов из ВСЕХ fine-grained индексов нужной Ekman-группы,
+    - объединяем в один пул и берём глобальный top-k по similarity.
+
+    Отличие от оригинала: embedding-модель all-MiniLM-L6-v2 вместо BAAI/bge-large-en-v1.5.
+    Для перехода на bge-large нужно перестроить индекс через build_index.py.
     """
     fine_emotions = EKMAN_TO_FINE.get(ekman_emotion, [])
 
-    # Precise: ищем через fine-grained индексы этой Ekman-группы
-    best_results = []
-    best_score = -1.0
+    # Собираем кандидатов из ВСЕХ fine-grained индексов этой Ekman-группы
+    all_candidates = []
     for fine_em in fine_emotions:
         if fine_em not in retriever.emotion_indices:
             continue
-        results = retriever.retrieve(dialogue_context, emotion=fine_em, top_k=top_k)
-        if results and results[0].get("similarity", 0) > best_score:
-            best_score = results[0].get("similarity", 0)
-            best_results = results
+        # top_k*2 с запасом — после объединения останется лучший top_k
+        results = retriever.retrieve(dialogue_context, emotion=fine_em, top_k=top_k * 2)
+        all_candidates.extend(results)
 
-    if best_results:
-        return best_results
+    if all_candidates:
+        # Глобальное ранжирование по similarity → top-k (как в оригинале)
+        all_candidates.sort(key=lambda x: -x.get("similarity", 0))
+        return all_candidates[:top_k]
 
-    # Fuzzy fallback: семантический поиск по всем эмоциям
+    # Fallback: семантический поиск без фильтра по эмоции
     return retriever._fallback_retrieve(dialogue_context, top_k=top_k)
 
 
